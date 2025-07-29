@@ -47,10 +47,17 @@ reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_4
 interval_path=/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed
 
 # GATK 推荐的已知变异位点文件（用于识别系统性测序误差）
+    # Base Quality Score Recalibration (BQSR) 使用的已知变异位点文件是经过严格验证的高可信度SNP和Indel集合，
+    # 用于区分真实遗传变异与测序错误，避免在真实变异位置错误调整碱基质量分数。
+    # 这里使用的三个文件分别为：
+        # 1) dbSNP138.vcf — 提供已知的常见SNP位点；
 known_sites_path_1=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.dbsnp138.vcf
+        # 2) Mills_and_1000G_gold_standard.indels.hg38.vcf.gz — 高质量的Indel金标准集合；
 known_sites_path_2=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
+        # 3) Homo_sapiens_assembly38.known_indels.vcf.gz — 额外的已知Indel集合。
 known_sites_path_3=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.known_indels.vcf.gz
-
+    # 这些文件均基于与参考基因组GRCh38相匹配的数据，保证BQSR模型准确识别系统性测序误差，从而提升变异检测准确性。
+    
 echo "Start Time: $(date +"%Y-%m-%d %H:%M:%S")"
 
 ###################### Step 4: 遍历 BAM 文件并执行 BQSR ######################
