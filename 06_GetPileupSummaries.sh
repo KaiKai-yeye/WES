@@ -1,6 +1,44 @@
 """
 pileup 汇总，用于 后续肿瘤纯度评估、变异过滤（尤其是 FilterMutectCalls）中计算群体等位基因频率（allele frequency）等目的。
 将每个.aligned.duplicates_marked.recalibrated.bam整合成对应的一个.pileups.table文件
+##################################################################################################################################################
+# GATK GetPileupSummaries 工作原理说明：
+#
+# 此步骤的目标是从肿瘤样本的 BAM 文件中，提取在一组已知人群常见变异位点处的等位基因支持情况，
+# 为后续的污染度评估（CalculateContamination）提供输入数据。
+#
+# 处理逻辑如下：
+# 1. 读取肿瘤样本的 BAM 文件（-I 参数），从中提取测序 reads。
+# 2. 读取提供的 VCF 文件（-V 参数），该文件包含常见人群变异位点及其等位基因频率（如 ExAC 数据）。
+# 3. 对 VCF 中每一个位点，在 BAM 文件中的BED文件限定区域进行 pileup 操作（即VCF和BED的交集）：
+#    - 统计多少 reads 支持参考等位基因（REF）
+#    - 多少 reads 支持变异等位基因（ALT）
+#    - 多少 reads 支持其他非 REF/ALT 的碱基（other alt）
+# 4.参考基因组序列（FASTA格式），用于确认每个位点的参考碱基，保证 BAM、VCF、BED 在坐标系统和染色体名称上的一致性；
+# 5. 输出一个 TSV 格式的 pileup 汇总表（pileups.table），用于后续计算污染度：
+#    - 包含位置、REF/ALT碱基、人群频率、支持数量等信息
+#
+# 输出的 pileups.table 是 CalculateContamination 的直接输入，
+# 可以用于判断样本是否存在外源 DNA 混入（交叉污染）。
+##################################################################################################################################################
+
+🧬 pileup 文件包含的关键信息
+| 列名               | 含义                              
+| ----------------- | ---------------------------------------------------- 
+| `contig`          | 染色体名（如 chr1、chrX）                          
+| `position`        | 基因组上的位置（1-based）                           
+| `refAllele`       | 参考基因组上的碱基                                  
+| `altAllele`       | 目标变异（常见变异数据库中提供的 ALT）               
+| `alleleFrequency` | ALT 等位基因在人群中的频率                  
+| `refCount`        | 在该位点上观测到 REF 碱基的 reads 数量       
+| `altCount`        | 在该位点上观测到 ALT 碱基的 reads 数量       
+| `otherCount`      | 观测到除 REF/ALT 以外的其他碱基数量（可能是测序错误） 
+
+📌 举个例子：
+contig	 position	refAllele	altAllele	alleleFrequency	  refCount	   altCount	    otherCount
+chr1	 123456	    A	        G	        0.015	           200	        15	         2
+这个例子表示在 chr1 的第 123456 位点：
+参考等位基因为 A，变异等位基因为 G；G 这个突变在人群中出现频率是 1.5%；在当前样本中有 200 个 reads 支持 A（ref），15 个支持 G（alt），还有 2 个支持其他碱基。
 """
 #!/bin/bash
 #SBATCH -J 07_Pileup                           # 作业名称
@@ -34,7 +72,7 @@ input_folder_path=/groups/g5840141/home/zengqianwen/WES/align                  #
 output_folder_path=/groups/g5840141/home/zengqianwen/WES/pileup               # 输出：pileup结果表格目录
 reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa
 
-# 用于限制分析范围的目标区域BED文件
+# 用于限制分析范围的目标区域BED文件（对于wes,主要用于限定外显子区域）
 interval_path=/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed
 
 # 公共种系变异VCF，用于获取 pileup（变异等位基因频率估计）
