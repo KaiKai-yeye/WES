@@ -1,5 +1,6 @@
 """
 pileup 汇总，用于 后续肿瘤纯度评估、变异过滤（尤其是 FilterMutectCalls）中计算群体等位基因频率（allele frequency）等目的。
+将每个.aligned.duplicates_marked.recalibrated.bam整合成对应的一个.pileups.table文件
 """
 #!/bin/bash
 #SBATCH -J 07_Pileup                           # 作业名称
