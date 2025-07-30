@@ -38,8 +38,8 @@ echo "04_Bwa_mem2 start!"
 ####################################
 for file_1 in ${input_folder_path}/*_val_1.fq.gz; do
     # 获取样本名
-    sample_name=$(basename ${file_1} _val_1.fq.gz)
-    file_2=${input_folder_path}/${sample_name}_val_2.fq.gz
+    sample_name=$(basename ${file_1} _1_val_1.fq.gz)
+    file_2=${input_folder_path}/${sample_name}_2_val_2.fq.gz
     bam_file=${output_folder_path}/${sample_name}.aligned.sorted.bam
 
     echo "[INFO] Processing sample: $sample_name"
