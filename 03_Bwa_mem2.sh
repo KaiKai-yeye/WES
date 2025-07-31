@@ -1,6 +1,13 @@
 """
 完成比对，输出排序好的比对bam文件和bai索引
 samtools 从版本 1.10 起默认生成的索引格式是 CSI（Coordinate Sorted Index），而非传统的 BAI。因此注意指定输出格式
+
+| 特点                   | BAI索引            | CSI索引         
+| --------------------- | ------------------ | ------------------------- 
+| 最大单条染色体长度支持  | \~2GB              | 超过2GB，适合超大基因组 
+| 兼容性                 | 更广，老软件支持    | 新软件支持更好       
+| 结构复杂度             | 较简单              | 复杂，功能更强       
+
 """
 #!/bin/bash
 #SBATCH -J 04_Bwa_mem2
@@ -58,21 +65,6 @@ for file_1 in ${input_folder_path}/*_1_val_1.fq.gz; do
 
                 read -u6 # 领取令牌, 控制进程数量
                 {
-                        bwa-mem2 mem \
-    -t 8 \   
-    -K 100000000 \  
-    -Y \  # 对大于一定长度的软剪切使用硬剪切（影响比对结果的CIGAR）
-    -R "@RG\\tID:${id}\\tLB:WES\\tSM:${sample_name}\\tPL:ILLUMINA\\tPU:${platform_unit}\\tPM:${instrument_id}" \  
-    ${bwa_fa_reference_path} \  
-    ${file_1} ${file_2} \  
-| \
-samtools sort -@ 8 \  # 使用8个线程对BWA输出的SAM进行排序
-    -m 1500M \  
-    --write-index \  
-    -o ${output_folder_path}/${sample_name}.aligned.sorted.bam##idx##${output_folder_path}/${sample_name}.aligned.sorted.bam.bai  
-sleep 5  # 等待5秒，保证进程稳定
-echo >&6  # 归还令牌，允许下一个任务启动（用于并发控制）
-
                         bwa-mem2 mem \ 
                         -t 8 \ # 使用8个线程加速比对
                         -K 100000000 \ # 每次批处理100M的碱基，提高效率
@@ -84,7 +76,7 @@ echo >&6  # 归还令牌，允许下一个任务启动（用于并发控制）
                         samtools sort -@ 8 \ #对 BWA 输出的比对结果进行排序和索引，排序是是让BAM文件中的reads在染色体上的顺序和参考基因组的顺序一致，索引是加速BAM文件的访问，，方便后续分析这两步方便了后续分析
                         -m 1500M \ # 每个线程最多使用1500M内存进行排序
                         --write-index \ # 排序完成后自动生成BAM索引文件（.bai）
-                        -o ${output_folder_path}/${sample_name}.aligned.sorted.bam##idx##${output_folder_path}/${sample_name}.aligned.sorted.bam.bai # 输出排序后的BAM和对应索引文件（指定bai格式）
+                        -o ${output_folder_path}/${sample_name}.aligned.sorted.bam ##idx## ${output_folder_path}/${sample_name}.aligned.sorted.bam.bai # 输出排序后的BAM和对应索引文件（指定bai格式）
                                 sleep 5
                                 echo >&6 # 归还令牌
                 }&
