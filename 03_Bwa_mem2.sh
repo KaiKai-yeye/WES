@@ -1,5 +1,6 @@
 """
 完成比对，输出排序好的比对bam文件和bai索引
+samtools 从版本 1.10 起默认生成的索引格式是 CSI（Coordinate Sorted Index），而非传统的 BAI。因此注意指定输出格式
 """
 #!/bin/bash
 #SBATCH -J 04_Bwa_mem2
