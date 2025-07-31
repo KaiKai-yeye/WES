@@ -1,3 +1,6 @@
+"""
+完成比对，输出排序好的比对bam文件和bai索引
+"""
 #!/bin/bash
 #SBATCH -J 04_Bwa_mem2
 #SBATCH -N 1
