@@ -4,6 +4,14 @@
                             具有相同的参考序列起始坐标
                             具有相同的方向（正链或负链）
                             同一个 read pair 的两端都符合上述条件（用于 PE 数据）
+
+                                    sambamba markdup \
+            -t 16 \
+            --tmpdir="${temp_dir_path}" \    # 指定临时文件存放目录，避免临时文件占用默认系统目录空间
+            --hash-table-size=262144 \       # 设置内部哈希表大小，用于加速重复片段检测，单位是哈希桶数
+            --overflow-list-size=67108864 \  # 设置溢出列表大小，单位是字节，用于处理哈希冲突时存储数据，增大可减少内存溢出错误
+            "$file" \
+            "$output_bam"
 """
 #!/bin/bash
 #SBATCH -J Markdup_0729
@@ -63,9 +71,9 @@ for file in ${input_folder_path}/*.aligned.sorted.bam; do
 
         sambamba markdup \
             -t 16 \
-            --tmpdir="${temp_dir_path}" \    # 指定临时文件存放目录，避免临时文件占用默认系统目录空间
-            --hash-table-size=262144 \       # 设置内部哈希表大小，用于加速重复片段检测，单位是哈希桶数
-            --overflow-list-size=67108864 \  # 设置溢出列表大小，单位是字节，用于处理哈希冲突时存储数据，增大可减少内存溢出错误
+            --tmpdir="${temp_dir_path}" \
+            --hash-table-size=262144 \
+            --overflow-list-size=67108864 \
             "$file" \
             "$output_bam"
 
