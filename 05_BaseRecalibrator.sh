@@ -7,11 +7,11 @@
 .aligned.duplicates_marked.recalibrated.bam      应用校准后的 BAM 文件，用于后续变异检测
 """
 #!/bin/bash
-#SBATCH -J BQSR_0729                        # SLURM作业名称
+#SBATCH -J BQSR_0805                        # SLURM作业名称
 #SBATCH -N 1                                # 申请1个节点
-#SBATCH -n 16                               # 申请16个核心
-#SBATCH -o BQSR.o                           # 标准输出日志文件
-#SBATCH -e BQSR.e                           # 错误输出日志文件
+#SBATCH -n 64                               # 申请16个核心
+#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.o                           # 标准输出日志文件
+#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.e                           # 错误输出日志文件
 
 ###################### Step 1: 加载环境 ######################
 # 激活 Conda 环境，其中包含 GATK 相关工具
@@ -20,7 +20,7 @@ conda activate /home/zengqianwen/.conda/envs/gatk4-zqw/
 
 ###################### Step 2: 初始化并发控制 ######################
 # 控制最大并行任务数（同时运行的样本数）
-Nproc=2
+Nproc=8
 
 # 创建唯一命名管道（FIFO）用于并发控制
 Pfifo="/tmp/$$.fifo"         # "$$"表示当前脚本进程的PID，避免命名冲突
@@ -35,10 +35,10 @@ done >&6
 
 ###################### Step 3: 路径设定 ######################
 # 输入目录：包含已经排序并标记重复的 BAM 文件
-input_folder_path=/groups/g5840141/home/zengqianwen/WES/align
+input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align
 
 # 输出目录：与输入一致，BQSR 输出 BAM 也存到这里
-output_folder_path=/groups/g5840141/home/zengqianwen/WES/align
+output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align
 
 # 参考基因组 fasta（.fa）
 reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa
@@ -102,8 +102,8 @@ for input_bam in ${input_folder_path}/*.aligned.duplicate_marked.sorted.bam; do
                 -I $input_bam \                           # 原始 BAM
                 -bqsr $recal_csv \                        # 重校准模型
                 -O $output_bam \                          # 输出新的 BAM
-                --add-output-sam-program-record \         # 记录处理软件信息
-                --create-output-bam-md5 \                 # 创建 MD5 校验文件
+                --add-output-sam-program-record true \  # 显式指定true
+                --create-output-bam-md5 true \         # 显式指定true
                 --use-original-qualities                  # 保留原始质量值
 
             echo "[DONE] BQSR completed for $sample_name"
