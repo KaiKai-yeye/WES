@@ -2,9 +2,13 @@
 纠正测序仪报告的碱基质量分数中的系统性偏差,提升变异检测的准确性
 
 输出:
-文件	                                           描述
+文件	                                         描述
 .recal_data.csv	                                 校准数据表，记录了每种错误类型的系统偏差
 .aligned.duplicates_marked.recalibrated.bam      应用校准后的 BAM 文件，用于后续变异检测
+.aligned.duplicates_marked.recalibrated.bai      索引
+.aligned.duplicates_marked.recalibrated.bam.md5  是一个 MD5 校验文件，它的作用是记录对应 BAM 文件的校验和，用于确保该 BAM 文件在传输或存储过程中 没有被损坏或篡改。文件很小
+
+
 """
 #!/bin/bash
 #SBATCH -J BQSR_0805                        # SLURM作业名称
