@@ -9,112 +9,105 @@
 #!/bin/bash
 #SBATCH -J BQSR_0805                        # SLURM作业名称
 #SBATCH -N 1                                # 申请1个节点
-#SBATCH -n 64                               # 申请16个核心
-#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.o                           # 标准输出日志文件
-#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.e                           # 错误输出日志文件
+#SBATCH -n 64                               # 申请64个核心（根据实际需求调整）
+#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.o  # 标准输出日志
+#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/1_BQSR_0805.e  # 错误输出日志
 
 ###################### Step 1: 加载环境 ######################
-# 激活 Conda 环境，其中包含 GATK 相关工具
+# 激活包含GATK的Conda环境
 source /opt/app/anaconda3/bin/activate
 conda activate /home/zengqianwen/.conda/envs/gatk4-zqw/
 
 ###################### Step 2: 初始化并发控制 ######################
-# 控制最大并行任务数（同时运行的样本数）
-Nproc=8
-
-# 创建唯一命名管道（FIFO）用于并发控制
-Pfifo="/tmp/$$.fifo"         # "$$"表示当前脚本进程的PID，避免命名冲突
+Nproc=8  # 最大并行任务数（根据节点核心数调整）
+Pfifo="/tmp/$$.fifo"  # 唯一命名管道，避免冲突
 mkfifo $Pfifo
-exec 6<>$Pfifo               # 将管道与文件描述符6关联（读写）
-rm -f $Pfifo                 # 删除原始管道文件名，不影响FD使用
+exec 6<>$Pfifo
+rm -f $Pfifo  # 删除文件实体，保留文件描述符
 
-# 初始化并发令牌（每个空行代表一个任务槽位）
+# 初始化并发令牌
 for ((i=1; i<=$Nproc; i++)); do
     echo
 done >&6
 
 ###################### Step 3: 路径设定 ######################
-# 输入目录：包含已经排序并标记重复的 BAM 文件
-input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align
+input_folder_path="/groups/g5840141/home/zengqianwen/WES_2025/align"  # 输入BAM目录
+output_folder_path="/groups/g5840141/home/zengqianwen/WES_2025/align"  # 输出目录
+reference_path="/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa"  # 参考基因组
+interval_path="/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed"  # 目标区域BED
 
-# 输出目录：与输入一致，BQSR 输出 BAM 也存到这里
-output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align
+# 已知变异位点文件（BQSR核心输入）
+known_sites_path_1="/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.dbsnp138.vcf"
+known_sites_path_2="/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+known_sites_path_3="/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.known_indels.vcf.gz"
 
-# 参考基因组 fasta（.fa）
-reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa
-
-# 目标区域 BED 文件，限制校准只发生在指定捕获区域
-interval_path=/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed
-
-# GATK 推荐的已知变异位点文件（用于识别系统性测序误差）
-    # Base Quality Score Recalibration (BQSR) 使用的已知变异位点文件是经过严格验证的高可信度SNP和Indel集合，
-    # 用于区分真实遗传变异与测序错误，避免在真实变异位置错误调整碱基质量分数。
-    # 这里使用的三个文件分别为：
-        # 1) dbSNP138.vcf — 提供已知的常见SNP位点；
-known_sites_path_1=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.dbsnp138.vcf
-        # 2) Mills_and_1000G_gold_standard.indels.hg38.vcf.gz — 高质量的Indel金标准集合；
-known_sites_path_2=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-        # 3) Homo_sapiens_assembly38.known_indels.vcf.gz — 额外的已知Indel集合。
-known_sites_path_3=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-resource-bundle/v0/Homo_sapiens_assembly38.known_indels.vcf.gz
-    # 这些文件均基于与参考基因组GRCh38相匹配的数据，保证BQSR模型准确识别系统性测序误差，从而提升变异检测准确性。
-    
 echo "Start Time: $(date +"%Y-%m-%d %H:%M:%S")"
 
-###################### Step 4: 遍历 BAM 文件并执行 BQSR ######################
-
-# 查找所有符合条件的 BAM 文件（已排序并标记重复）
-for input_bam in ${input_folder_path}/*.aligned.duplicate_marked.sorted.bam; do
-
-    # 从文件名中提取样本名（例如：PHCC2417T1）
+###################### Step 4: 批量执行BQSR ######################
+for input_bam in "${input_folder_path}"/*.aligned.duplicate_marked.sorted.bam; do
+    # 提取样本名（去除文件名后缀）
     filename=$(basename "$input_bam")
-    sample_name="${filename%.aligned.duplicate_marked.sorted.bam}"#使用的是标记重复后的bam文件
+    sample_name="${filename%.aligned.duplicate_marked.sorted.bam}"
+    
+    # 输出文件路径
+    recal_csv="${output_folder_path}/${sample_name}.recal_data.csv"  # 校准模型
+    output_bam="${output_folder_path}/${sample_name}.aligned.duplicates_marked.recalibrated.bam"  # 校准后BAM
 
-    # 设定输出文件路径
-    recal_csv=${output_folder_path}/${sample_name}.recal_data.csv  # 校准模型文件
-    output_bam=${output_folder_path}/${sample_name}.aligned.duplicates_marked.recalibrated.bam  # 最终输出 BAM
+    echo "Processing sample: $sample_name (start at: $(date +"%H:%M:%S"))"
 
-    echo "Checking sample: $sample_name at $(date +"%Y-%m-%d %H:%M:%S")"
-
-    # 如果已存在输出文件，则跳过该样本
-    if [ -e "$output_bam" ]; then
-        echo "[SKIP] $output_bam already exists."
-    else
-        echo "[RUN] Starting BQSR for $sample_name"
-
-        read -u6  # 从FD6中读取一个令牌（代表获取一个可用并发槽位）
-        {
-            ################## Step 4.1: 构建重校准模型 ##################
-            # 基于已知变异，GATK 将识别测序误差并建立校准模型
-            gatk BaseRecalibrator \
-                -R $reference_path \                      # 参考基因组
-                -I $input_bam \                           # 输入 BAM
-                -L $interval_path \                       # 限定区域（BED）
-                --use-original-qualities \                # 使用原始质量值进行建模
-                --known-sites $known_sites_path_1 \       # 常见 SNP 变异
-                --known-sites $known_sites_path_2 \       # 高可信 InDel 变异
-                --known-sites $known_sites_path_3 \       # 额外 InDel 数据
-                -O $recal_csv                             # 输出：重校准模型
-
-            ################## Step 4.2: 应用重校准模型 ##################
-            # 使用上一步生成的模型对原 BAM 文件中的碱基质量值进行调整
-            gatk ApplyBQSR \
-                -R $reference_path \                      # 参考基因组
-                -I $input_bam \                           # 原始 BAM
-                -bqsr $recal_csv \                        # 重校准模型
-                -O $output_bam \                          # 输出新的 BAM
-                --add-output-sam-program-record true \  # 显式指定true
-                --create-output-bam-md5 true \         # 显式指定true
-                --use-original-qualities                  # 保留原始质量值
-
-            echo "[DONE] BQSR completed for $sample_name"
-            echo >&6  # 归还令牌
-        } &
+    # 跳过已完成的样本
+    if [ -e "$output_bam" ] && [ -e "${output_bam}.bai" ]; then
+        echo "[SKIP] $sample_name: Output files already exist."
+        continue
     fi
+
+    # 并发控制：获取一个令牌
+    read -u6
+    {
+        ################## Step 4.1: 构建重校准模型 ##################
+        echo "[RUN] $sample_name: Starting BaseRecalibrator"
+        gatk BaseRecalibrator \
+            -R "${reference_path}" \
+            -I "${input_bam}" \
+            -L "${interval_path}" \
+            --use-original-qualities \
+            --known-sites "${known_sites_path_1}" \
+            --known-sites "${known_sites_path_2}" \
+            --known-sites "${known_sites_path_3}" \
+            -O "${recal_csv}"
+        
+        # 检查模型文件是否生成
+        if [ ! -e "${recal_csv}" ]; then
+            echo "[ERROR] $sample_name: BaseRecalibrator failed (no output CSV)"
+            echo >&6  # 释放令牌
+            continue
+        fi
+
+        ################## Step 4.2: 应用重校准模型 ##################
+        echo "[RUN] $sample_name: Starting ApplyBQSR"
+        gatk ApplyBQSR \
+            -R "${reference_path}" \
+            -I "${input_bam}" \
+            -bqsr "${recal_csv}" \
+            -O "${output_bam}" \
+            --create-output-bam-md5 true \
+            --use-original-qualities
+
+        # 检查输出BAM是否生成
+        if [ -e "$output_bam" ]; then
+            echo "[DONE] $sample_name: BQSR completed"
+        else
+            echo "[ERROR] $sample_name: ApplyBQSR failed (no output BAM)"
+        fi
+
+        # 释放令牌
+        echo >&6
+    } &
 done
 
 ###################### Step 5: 等待所有任务完成 ######################
-wait            # 等待所有后台任务执行完成
-exec 6>&-       # 关闭并释放文件描述符6
+wait
+exec 6>&-  # 关闭文件描述符
 
 echo "End Time: $(date +"%Y-%m-%d %H:%M:%S")"
-echo "BQSR step done!"
+echo "BQSR pipeline finished!"
