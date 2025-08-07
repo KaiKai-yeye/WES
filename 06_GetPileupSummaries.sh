@@ -1,6 +1,27 @@
 """
 pileup 汇总，用于 后续肿瘤纯度评估、变异过滤（尤其是 FilterMutectCalls）中计算群体等位基因频率（allele frequency）等目的。
 将每个.aligned.duplicates_marked.recalibrated.bam整合成对应的一个.pileups.table文件
+################################################输入文件################################################################################
+input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align  # 输入：BQSR校正后的BAM文件目录
+
+output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/pileup  # 输出：pileup结果表格目录
+
+# 参考基因组FASTA文件（GRCh38版本）
+reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa
+
+# 目标区间BED文件（Agilent捕获芯片的外显子区域，限定分析范围）
+interval_path=/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed
+
+# 公共种系变异VCF（包含等位基因频率信息，用于计算pileup）
+germline_resource_path=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz
+
+##################################################################################################################################################
+gatk GetPileupSummaries \
+    -R "$reference_path" \  # -R: 指定参考基因组FASTA文件路径（必须与BAM文件的参考版本一致）
+    -I "$file" \          # -I: 输入的BAM文件（经过BQSR校正的样本数据）
+    -V "$germline_resource_path" \  # -V: 种系变异VCF文件（包含等位基因频率，用于计算pileup）
+    -L "$interval_path" \  # -L: 目标区间BED文件（限定仅分析外显子等捕获区域，提高效率）
+    -O "$output_table"; then  # -O: 输出的pileup结果表格路径（包含每个位点的等位基因计数等信息）
 ##################################################################################################################################################
 # GATK GetPileupSummaries 工作原理说明：
 #
@@ -41,97 +62,64 @@ chr1	 123456	       A	          G	           0.015	           200	        15	   
 参考等位基因为 A，变异等位基因为 G；G 这个突变在人群中出现频率是 1.5%；在当前样本中有 200 个 reads 支持 A（ref），15 个支持 G（alt），还有 2 个支持其他碱基。
 """
 #!/bin/bash
-#SBATCH -J 07_Pileup                           # 作业名称
-#SBATCH -N 1                                   # 所需节点数（通常为1个节点即可）
-#SBATCH -n 16                                  # 请求使用的CPU核心数
-#SBATCH -o 07_Pileup.o                         # 标准输出文件
-#SBATCH -e 07_Pileup.e                         # 标准错误输出文件
-
+#SBATCH -J Pileup_0807                           # 作业名称
+#SBATCH -N 1                                   # 所需节点数
+#SBATCH -n 64                                 # 请求CPU核心数
+#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/7_Pileup_01.o  # 标准输出
+#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/7_Pileup_01.e  # 错误输出
 ############################ 环境激活 ############################
-
-# 激活 Conda 环境，加载包含 GATK 的环境
 source /opt/app/anaconda3/bin/activate
 conda activate /home/zengqianwen/.conda/envs/gatk4-zqw/
-
 ############################ 控制并发进程数量 ############################
-
-Nproc=4                                        # 同时允许最多4个任务并发执行（根据资源配置可调整）
-Pfifo="/tmp/$$.fifo"                           # 创建临时命名管道文件，$$ 表示当前脚本进程ID
-mkfifo $Pfifo                                  # 创建命名管道文件
-exec 6<>$Pfifo                                 # 打开管道文件并绑定到文件描述符6
-rm -f $Pfifo                                   # 删除文件名（文件描述符仍然可用）
-
-# 在文件描述符6中写入Nproc个“令牌”，每个令牌代表一个可用的并发“槽位”
+Nproc=16
+Pfifo="/tmp/$$.fifo"
+mkfifo $Pfifo
+exec 6<>$Pfifo
+rm -f $Pfifo
 for ((i=1; i<=Nproc; i++)); do
     echo
 done >&6
-
-############################ 设置输入输出路径和参考文件 ############################
-
-input_folder_path=/groups/g5840141/home/zengqianwen/WES/align                  # 输入：BQSR后的BAM文件目录
-output_folder_path=/groups/g5840141/home/zengqianwen/WES/pileup               # 输出：pileup结果表格目录
+############################ 设置路径 ############################
+input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/align
+output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/pileup
 reference_path=/groups/g5840087/home/share/refGenome/reference/gencode/release_40/GRCh38.p13/fa/GRCh38.primary_assembly.genome.fa
-
-# 用于限制分析范围的目标区域BED文件（对于wes,主要用于限定外显子区域）
 interval_path=/groups/g5840087/home/share/refGenome/reference/agilent/S07604514_hs_hg38/S07604514_Padded.bed
-
-# 公共种系变异VCF，用于获取 pileup（变异等位基因频率估计）
 germline_resource_path=/groups/g5840087/home/share/refGenome/reference/gatk/gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz
-
-# 确保输出文件夹存在
 mkdir -p "$output_folder_path"
-
 ############################ 记录开始时间 ############################
-
 echo "Start Time: $(date +"%Y-%m-%d %H:%M:%S")"
-
 ############################ 遍历BAM文件并执行Pileup ############################
-
-# 遍历目录中所有BQSR后的BAM文件
 for file in "$input_folder_path"/*.aligned.duplicates_marked.recalibrated.bam; do
-    # 提取样本名（去除路径和后缀）
     filename=$(basename "$file")
     sample_name="${filename%.aligned.duplicates_marked.recalibrated.bam}"
-
-    # 定义输出文件路径
     output_table="${output_folder_path}/${sample_name}.pileups.table"
-
     echo "Checking sample: $sample_name at $(date +"%Y-%m-%d %H:%M:%S")"
-
-    # 如果该样本的pileup结果已存在，跳过处理
     if [ -e "$output_table" ]; then
         echo "[SKIP] Output exists: $output_table"
         continue
     fi
-
-    # 从令牌池中获取一个令牌，控制并发任务数量
     read -u6
     {
         echo "[RUN] Running GetPileupSummaries for sample: $sample_name"
-
-        # 执行GATK GetPileupSummaries
-        gatk GetPileupSummaries \
-            -R "$reference_path" \                           # 指定参考基因组FASTA
-            -I "$file" \                                     # 输入BAM文件（BQSR后）
-            -V "$germline_resource_path" \                   # 公共种系变异资源（VCF格式）
-            -L "$germline_resource_path" \                   # 用于从VCF中提取目标区域的注释
-            -L "$interval_path" \                            # 指定捕获区域BED文件
-            --interval-set-rule INTERSECTION \               # 仅分析两个L参数交集部分
-            -O "$output_table"                               # 输出pileup结果表格
-
-        echo "[DONE] Completed: $sample_name"
+        # 核心命令：添加错误捕获，仅针对gatk命令报错
+        if ! gatk GetPileupSummaries \
+            -R "$reference_path" \
+            -I "$file" \
+            -V "$germline_resource_path" \
+            -L "$interval_path" \
+            -O "$output_table"; then
+            # 命令执行失败时输出详细错误信息
+            echo "[ERROR] GetPileupSummaries failed for sample: $sample_name" >&2
+            echo "[ERROR] 失败命令: gatk GetPileupSummaries -R $reference_path -I $file -V $germline_resource_path -L $interval_path -O $output_table" >&2
+            # 若需要中断整个脚本，可取消下面一行的注释；否则仅标记该样本失败，继续执行其他样本
+            # exit 1
+        fi
+        echo "[DONE] Completed: $sample_name (若上方有ERROR提示，则该样本处理失败)"
         sleep 2
-
-        echo >&6  # 归还令牌，释放槽位
+        echo >&6
     } &
 done
-
-############################ 等待所有任务完成 ############################
-
 wait
-exec 6>&-  # 关闭文件描述符6
-
-############################ 输出完成信息 ############################
-
+exec 6>&-
 echo "End Time: $(date +"%Y-%m-%d %H:%M:%S")"
-echo "07_Pileup done!"
+echo "07_Pileup done! (注意检查是否有样本处理失败的ERROR提示)"
