@@ -36,7 +36,7 @@ pileup 汇总，用于 后续肿瘤纯度评估、变异过滤（尤其是 Filte
 
 📌 举个例子：
 contig	 position	refAllele	altAllele	alleleFrequency	  refCount	   altCount	    otherCount
-chr1	 123456	    A	        G	        0.015	           200	        15	         2
+chr1	 123456	       A	          G	           0.015	           200	        15	         2
 这个例子表示在 chr1 的第 123456 位点：
 参考等位基因为 A，变异等位基因为 G；G 这个突变在人群中出现频率是 1.5%；在当前样本中有 200 个 reads 支持 A（ref），15 个支持 G（alt），还有 2 个支持其他碱基。
 """
