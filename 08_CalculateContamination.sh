@@ -11,12 +11,7 @@
 #      - 包含肿瘤样本在公共种系变异位点上的等位基因频率统计信息
 #
 #   2. Matched normal pileup table (.pileups.table)
-#      - 同样来自 GetPileupSummaries，来自匹配的正常样本（血液P或肝脏L）
-#
-#   3. Tumor segmentation file (.segments.table)
-#      - 来源：GATK ModelSegments 步骤（在 CNV 拷贝数变异分析中生成）
-#      - 表示肿瘤样本基因组中不同区域的 copy number 状态（如扩增或缺失），用于校正因肿瘤样本中拷贝数异常而造成的等位基因频率偏差。
-#        若不考虑这些拷贝数改变区域，可能会错误地将其解释为样本污染，从而降低评估准确性。
+#      - 同样来自 GetPileupSummaries，来自匹配的正常样本（血液P或肝脏L），复发发没正常样本可以用同一个病人的原发正常
 #
 #      📄 示例结构（TSV）：
 #      CONTIG   START      END        NUM_POINTS_COPY_RATIO   MEAN_LOG2_COPY_RATIO（0 表示无变化，负值表示缺失，正值表示扩增）
