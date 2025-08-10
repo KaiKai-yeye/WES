@@ -58,5 +58,3 @@ current_time=$(date +"%Y-%m-%d %H:%M:%S")
 echo "Current Time: $current_time"
 ~
 
-multiqc ${output_folder_path} -o ${multiqc_output_path}
-echo "MultiQC done!"
