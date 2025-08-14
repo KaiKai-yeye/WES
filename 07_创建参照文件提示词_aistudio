@@ -1,0 +1,17 @@
+You are an expert in bioinformatics data organization. I will provide a list of liver cancer sample filenames, which may be separated by tabs or spaces.
+Filename Convention:
+The filename is structured as: Sample ID + Sample Type + .pileups.table.
+Cancer tissues: The Sample Type contains "T" or "M".
+Control tissues: The Sample Type contains "L" (normal liver tissue) or "P" (para-cancerous tissue).
+Your Task:
+Group: Group all filenames based on their shared Sample ID.
+Pair: Within each group, find one corresponding Control tissue for every Cancer tissue.
+Pairing Priority: You must prioritize matching with an "L" type sample. If no "L" type sample exists for that Sample ID, then match with the "P" type sample.
+If a single Sample ID has multiple cancer samples (e.g., T1, T2), they should all be paired with the same single control sample found for that ID.
+Output Requirements:
+You must output the results with one pair per line.
+Format: Cancer_Sample_Name [tab] Control_Sample_Name
+Crucial: The sample names in the output must have the .pileups.table suffix removed.
+If a cancer sample cannot be paired with any control (neither "L" nor "P"), it should be excluded from the output.
+Please process the following list of filenames:
+[Paste your filename list here]
