@@ -28,32 +28,32 @@
 #     主要字段：
 #       * contamination：估算的污染比例（如 0.03 表示 3% 混入正常细胞）
 #       * contamination_sd：标准差，反映置信度
+#   - tumor segmentation 文件 肿瘤分段文件
 #
 # ⚙️ 原理流程简述：
 #   - GATK 首先根据 tumor 和 normal 的 pileup 数据，在常见种系变异位点上
 #     比较等位基因频率，识别可能的污染信号（如在应为纯合位点发现另一种等位基因）；
-#   - 同时结合肿瘤样本的 segments.table 文件，识别并校正受拷贝数异常影响的区域；
 #   - 最终估算肿瘤样本中的 contamination 值，用于后续过滤（如 FilterMutectCalls）。
 #
 # 📌 注意事项：
 #   - pileup 表格必须来源于相同版本的参考基因组和变异数据库；
-#   - tumor segmentation 文件必须由对应样本的拷贝数分析流程（ModelSegments）生成；
+#   - 必须由对应样本的拷贝数分析流程（ModelSegments）生成；
 #   - 匹配的 normal 样本必须尽可能来自同一患者（如血液P、肝组织L），
 #     否则污染率估算可能不准确。
 """
 #!/bin/bash
-#SBATCH -J Calculate_Contamination
+#SBATCH -J Calculate_Contamination_0814
 #SBATCH -N 1
-#SBATCH -n 12
-#SBATCH -o Calculate_Contamination.o
-#SBATCH -e Calculate_Contamination.e
+#SBATCH -n 36
+#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/07_Calculate_Contamination_1.o
+#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/07_Calculate_Contamination_1.e
 
 # 激活 Conda 环境
 source /opt/app/anaconda3/bin/activate
 conda activate /home/zengqianwen/.conda/envs/gatk4-zqw/
 
 ##################### 并行控制设置 #####################
-Nproc=4
+Nproc=12
 Pfifo="/tmp/$$.fifo"
 mkfifo $Pfifo
 exec 6<>$Pfifo
@@ -61,69 +61,45 @@ rm -f $Pfifo
 for ((i=1; i<=Nproc; i++)); do echo; done >&6
 
 ##################### 目录路径设置 #####################
-input_folder_path=/groups/g5840141/home/zengqianwen/WES/pileup
-input_folder_path_tumor_segmentation=/groups/g5840141/home/zengqianwen/WES/tumor-segmentation
-output_folder_path=/groups/g5840141/home/zengqianwen/WES/contamination
+input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/pileup
+output_folder_path_tumor_segmentation=/groups/g5840141/home/zengqianwen/WES_2025/tumor-segmentation
+output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/contamination
 
+mkdir -p "$output_folder_path_tumor_segmentation"
 mkdir -p "$output_folder_path"
 
-##################### 记录开始时间 #####################
-echo "Start Time: $(date '+%Y-%m-%d %H:%M:%S')"
+# Sample_list=(PHCC2048T PHCC2048L RHCC2358T RHCC2358M PHCC3519T PHCC3519P RHCC4057Th RHCC4057L PHCC1889T PHCC1889L RHCC4055T RHCC4055P PHCC2992T PHCC2992L RHCC4050T RHCC4050P PHCC2071T PHCC2071P RHCC4173T1 RHCC4173T2 RHCC4173L)
+Sample_list=(PHCC2417T1 PHCC2417T2 PHCC2417T3 PHCC2417T4 PHCC2417P RHCC4584T PHCC1011T PHCC1011L RHCC4619T RHCC4619P PHCC966T RHCC4664T RHCC4664P PHCC3603T RHCC4691T RHCC4691P PHCC972T PHCC972L RHCC4349T PHCC3369T PHCC3369P RHCC4121T RHCC4121L)
 
-##################### 样本对自动识别处理 #####################
-for tumpr_file in ${input_folder_path}/*T*.pileups.table; do
-    # 提取肿瘤样本名
-    tumor_sample=$(basename "$tumpr_file" .pileups.table)
+current_time=$(date +"%Y-%m-%d %H:%M:%S")
+echo "Current Time: $current_time"
 
-    # 优先匹配 L，再匹配 P 作为正常样本
-    matched_normal_file=""
-    for suffix in L P; do
-        normal_candidate="${input_folder_path}/${tumor_sample%T*}${suffix}.pileups.table"
-        if [[ -f "$normal_candidate" ]]; then
-            matched_normal_file="$normal_candidate"
-            normal_sample=$(basename "$matched_normal_file" .pileups.table)
-            break
-        fi
-    done
 
-    if [[ -z "$matched_normal_file" ]]; then
-        echo "[WARN] No matched normal sample found for tumor sample: $tumor_sample"
-        continue
-    fi
-
-    # 输出文件路径
-    output_file="${output_folder_path}/${tumor_sample}.contamination.table"
-
-    if [[ -e "$output_file" ]]; then
-        echo "[SKIP] Contamination already exists for $tumor_sample"
-        continue
-    fi
-
-    # 检查分段文件是否存在
-    segment_file="${input_folder_path_tumor_segmentation}/${tumor_sample}.segments.table"
-    if [[ ! -f "$segment_file" ]]; then
-        echo "[SKIP] Tumor segmentation file not found for $tumor_sample"
-        continue
-    fi
-
-    # 执行 contamination 计算
-    read -u6
-    {
-        echo "[RUN] Processing $tumor_sample (normal: $normal_sample) at $(date '+%H:%M:%S')"
-        gatk CalculateContamination \
-            -I "$tumpr_file" \
-            -matched "$matched_normal_file" \
-            -tumor-segmentation "$segment_file" \
-            -O "$output_file"
-
-        sleep 2
-        echo >&6
-    } &
-done
+while IFS=$'\t' read -r Tumor_sample_name Normal_sample_name; do
+    tumpr_file=${input_folder_path}/${Tumor_sample_name}.pileups.table
+    matched_normal_file=${input_folder_path}/${Normal_sample_name}.pileups.table
+    if [ -e ${output_folder_path}/${Tumor_sample_name}.contamination.table ]; then
+                echo "${Tumor_sample_name}.contamination.table exists"
+        else
+                echo "${Tumor_sample_name}.contamination.table not exists"
+	        read -u6        # 领取令牌
+	                {
+	                        gatk CalculateContamination \
+	                        -I ${tumpr_file} \
+	                        -matched ${matched_normal_file} \
+	                        -tumor-segmentation ${output_folder_path_tumor_segmentation}/${Tumor_sample_name}.segments.table \
+	                        -O ${output_folder_path}/${Tumor_sample_name}.contamination.table
+	                        sleep 5
+	                        echo >&6
+	                }&
+	fi
+done < 07_Calculate_Contamination_Sample_list.txt
 
 wait
 exec 6>&-
 
-##################### 记录结束时间 #####################
-echo "End Time: $(date '+%Y-%m-%d %H:%M:%S')"
+
+current_time=$(date +"%Y-%m-%d %H:%M:%S")
+echo "Current Time: $current_time"
 echo "08_Calculate_Contamination done!"
+
