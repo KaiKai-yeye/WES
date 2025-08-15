@@ -76,7 +76,8 @@ for file_1 in ${input_folder_path}/*_1_val_1.fq.gz; do
                         samtools sort -@ 8 \ #对 BWA 输出的比对结果进行排序和索引，排序是是让BAM文件中的reads在染色体上的顺序和参考基因组的顺序一致，索引是加速BAM文件的访问，，方便后续分析这两步方便了后续分析
                         -m 1500M \ # 每个线程最多使用1500M内存进行排序
                         --write-index \ # 排序完成后自动生成BAM索引文件（.bai）
-                        -o ${output_folder_path}/${sample_name}.aligned.sorted.bam ##idx## ${output_folder_path}/${sample_name}.aligned.sorted.bam.bai # 输出排序后的BAM和对应索引文件（指定bai格式）
+                        --output-fmt-option index_format=bai \
+                        -o ${output_folder_path}/${sample_name}.aligned.sorted.bam
                                 sleep 5
                                 echo >&6 # 归还令牌
                 }&
