@@ -64,42 +64,39 @@ for ((i=1; i<=Nproc; i++)); do echo; done >&6
 input_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/pileup
 output_folder_path_tumor_segmentation=/groups/g5840141/home/zengqianwen/WES_2025/tumor-segmentation
 output_folder_path=/groups/g5840141/home/zengqianwen/WES_2025/contamination
-
 mkdir -p "$output_folder_path_tumor_segmentation"
 mkdir -p "$output_folder_path"
 
 # Sample_list=(PHCC2048T PHCC2048L RHCC2358T RHCC2358M PHCC3519T PHCC3519P RHCC4057Th RHCC4057L PHCC1889T PHCC1889L RHCC4055T RHCC4055P PHCC2992T PHCC2992L RHCC4050T RHCC4050P PHCC2071T PHCC2071P RHCC4173T1 RHCC4173T2 RHCC4173L)
-Sample_list=(PHCC2417T1 PHCC2417T2 PHCC2417T3 PHCC2417T4 PHCC2417P RHCC4584T PHCC1011T PHCC1011L RHCC4619T RHCC4619P PHCC966T RHCC4664T RHCC4664P PHCC3603T RHCC4691T RHCC4691P PHCC972T PHCC972L RHCC4349T PHCC3369T PHCC3369P RHCC4121T RHCC4121L)
+#Sample_list=(PHCC2417T1 PHCC2417T2 PHCC2417T3 PHCC2417T4 PHCC2417P RHCC4584T PHCC1011T PHCC1011L RHCC4619T RHCC4619P PHCC966T RHCC4664T RHCC4664P PHCC3603T RHCC4691T RHCC4691P PHCC972T PHCC972L RHCC4349T RHCC3369T RHCC3369P RHCC4121T RHCC4121L)
 
 current_time=$(date +"%Y-%m-%d %H:%M:%S")
 echo "Current Time: $current_time"
 
-
-while IFS=$'\t' read -r Tumor_sample_name Normal_sample_name; do
-    tumpr_file=${input_folder_path}/${Tumor_sample_name}.pileups.table
+while read -r Tumor_sample_name Normal_sample_name; do
+    tumor_file=${input_folder_path}/${Tumor_sample_name}.pileups.table
     matched_normal_file=${input_folder_path}/${Normal_sample_name}.pileups.table
+    
     if [ -e ${output_folder_path}/${Tumor_sample_name}.contamination.table ]; then
-                echo "${Tumor_sample_name}.contamination.table exists"
-        else
-                echo "${Tumor_sample_name}.contamination.table not exists"
-	        read -u6        # 领取令牌
-	                {
-	                        gatk CalculateContamination \
-	                        -I ${tumpr_file} \
-	                        -matched ${matched_normal_file} \
-	                        -tumor-segmentation ${output_folder_path_tumor_segmentation}/${Tumor_sample_name}.segments.table \
-	                        -O ${output_folder_path}/${Tumor_sample_name}.contamination.table
-	                        sleep 5
-	                        echo >&6
-	                }&
-	fi
+        echo "${Tumor_sample_name}.contamination.table exists"
+    else
+        echo "${Tumor_sample_name}.contamination.table not exists"
+        read -u6        # 领取令牌
+        {
+            gatk CalculateContamination \
+            -I ${tumor_file} \
+            -matched ${matched_normal_file} \
+            -tumor-segmentation ${output_folder_path_tumor_segmentation}/${Tumor_sample_name}.segments.table \
+            -O ${output_folder_path}/${Tumor_sample_name}.contamination.table
+            sleep 5
+            echo >&6
+        }&
+    fi
 done < 07_Calculate_Contamination_Sample_list.txt
 
 wait
 exec 6>&-
 
-
 current_time=$(date +"%Y-%m-%d %H:%M:%S")
 echo "Current Time: $current_time"
 echo "08_Calculate_Contamination done!"
-
