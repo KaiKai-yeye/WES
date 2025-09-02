@@ -31,7 +31,7 @@
 
 08_Calculate_Contamination.sh: 计算样本间可能存在的交叉污染。这对于准确识别低频突变非常重要。
 
-09_Mutect2.sh: 运行GATK Mutect2来检测体细胞的单核苷酸变异（SNV）和小的插入/缺失（Indel）。它可以处理肿瘤-正常配对样本，也可以在“仅肿瘤”（Tumor-only）模式下运行。
+09_Mutect2.sh: 运行GATK Mutect2来检测体细胞的单核苷酸变异（SNV）和小的插入/缺失（Indel）。它可以处理肿瘤-正常配对样本，也可以在“仅肿瘤”（Tumor-only）模式下运行。（8、9可并行操作）
 
 10_LearnReadOrientationModel.sh: 学习并建立一个模型来识别由于DNA在样本处理（如福尔马林固定）过程中发生氧化损伤而导致的特定错误模式（方向性偏误），这是一种常见的假阳性来源。
 
