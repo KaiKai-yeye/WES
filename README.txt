@@ -29,7 +29,7 @@
 
 07_Pileup.sh: 生成Pileup文件，这是一种文本格式，汇总了每个基因组位置上的碱基信息。虽然Mutect2不直接需要它，但它可能用于其他目的或作为辅助质控。
 
-08_Calculate_Contamination.sh: 计算样本间可能存在的交叉污染。这对于准确识别低频突变非常重要。
+08_Calculate_Contamination.sh: 利用7生成的pileup，肿瘤和正常对照配对计算样本间可能存在的交叉污染。这对于准确识别低频突变非常重要。
 
 09_Mutect2.sh: 运行GATK Mutect2来检测体细胞的单核苷酸变异（SNV）和小的插入/缺失（Indel）。它可以处理肿瘤-正常配对样本，也可以在“仅肿瘤”（Tumor-only）模式下运行。（8、9可并行操作）
 
