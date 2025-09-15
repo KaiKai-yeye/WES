@@ -6,6 +6,61 @@ GATK Mutect2 是用于检测体细胞突变（somatic mutation）的核心工具
 它基于 HaplotypeCaller 的重组装思想，能检测：
       SNVs（单核苷酸突变）、Indels（插入/缺失）
 
+输入文件
+1. BAM 文件（已处理的测序数据）
+
+路径: /groups/g5840141/home/zengqianwen/WES/align/
+文件格式: ${样本名}.aligned.duplicates_marked.recalibrated.bam
+内容: 已完成比对、去重、重校准的测序数据
+用途: 肿瘤样本和配对正常样本的输入数据
+
+2. 参考基因组
+
+路径: GRCh38.primary_assembly.genome.fa
+用途: 人类参考基因组序列（GRCh38.p13版本）
+
+3. 外显子捕获区域
+
+路径: S07604514_Padded.bed
+用途: 定义外显子测序的目标区域（Agilent S07604514 panel）
+
+4. 生殖系变异资源
+
+路径: small_exac_common_3.hg38.vcf.gz
+用途: 包含人群中常见生殖系变异，帮助区分体细胞vs生殖系变异
+
+5. Panel of Normals (PON)
+
+路径: 1000g_pon.hg38.vcf.gz
+用途: 正常样本背景变异数据库，过滤假阳性变异
+
+6. 样本配对信息
+
+文件: 08_Calculate_Contamination_Sample_list.txt
+格式: 制表符分隔，包含肿瘤样本名和配对正常样本名
+
+输出文件
+1. 未过滤的VCF文件
+
+路径: /groups/g5840141/home/zengqianwen/WES/mutect2/vcf/unfiltered/
+文件格式: ${肿瘤样本名}.unfiltered.vcf
+内容:
+
+所有检测到的候选体细胞变异
+包括可能的假阳性变异
+需要后续过滤步骤
+
+
+
+2. F1R2数据文件
+
+路径: /groups/g5840141/home/zengqianwen/WES/mutect2/vcf/f1r2/
+文件格式: ${肿瘤样本名}.f1r2.tar.gz
+内容:
+
+链特异性错误信号数据
+用于后续的 LearnReadOrientationModel 分析
+帮助识别和过滤测序伪影
       
 """
 #!/bin/bash
