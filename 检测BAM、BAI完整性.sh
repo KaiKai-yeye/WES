@@ -91,4 +91,4 @@ echo "======================================"
 `RHCC2439T1.aligned.duplicates_marked.recalibrated.bam    RHCC2439T1    OK           OK`
 `RHCC2439T1.aligned.sorted.bam                            RHCC2439T1    OK           OK`
 
-这样既能唯一标识每个被检查的文件，又能提供一个简洁的样本ID供您参考，完美满足您的需求。
+
