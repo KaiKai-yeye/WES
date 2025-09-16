@@ -3,8 +3,8 @@
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH --cpus-per-task=1
-#SBATCH -o check_bam_%j.o
-#SBATCH -e check_bam_%j.e
+#SBATCH -o /groups/g5840141/home/zengqianwen/WES_2025/shell_script/check_bam_%j.o
+#SBATCH -e /groups/g5840141/home/zengqianwen/WES_2025/shell_script/check_bam_%j.e
 
 # 激活 conda 环境 (确保 samtools 已安装)
 # 请确保这里的路径是正确的
