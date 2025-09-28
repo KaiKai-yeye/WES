@@ -19,7 +19,7 @@ for((i=1; i<=$Nproc; i++)); do
 done >&6
 
 input_folder_path_vcf=/groups/g5840141/home/zengqianwen/WES_2025/mutect2/vcf/unfiltered
-input_folder_path_f1r2=/groups/g5840141/home/zengqianwen/WES_2025/LROM
+input_folder_path_LROM=/groups/g5840141/home/zengqianwen/WES_2025/LROM
 input_folder_path_contamination=/groups/g5840141/home/zengqianwen/WES_2025/contamination
 input_folder_path_tumor_segmentation=/groups/g5840141/home/zengqianwen/WES_2025/tumor-segmentation
 input_folder_path_bam=/groups/g5840141/home/zengqianwen/WES_2025/align
@@ -55,7 +55,7 @@ while IFS=$'\t' read -r Tumor_sample_name Normal_sample_name; do
     vcf_file=${input_folder_path_vcf}/${Tumor_sample_name}.unfiltered.vcf
     sample_name=$(basename ${vcf_file} .unfiltered.vcf)
 
-    fr2_file=${input_folder_path_f1r2}/${sample_name}.read-orientation-model.tar.gz
+    LROM_file=${input_folder_path_LROM}/${sample_name}.read-orientation-model.tar.gz
     contamination_file=${input_folder_path_contamination}/${sample_name}.contamination.table
     tumor_segmentation_file=${input_folder_path_tumor_segmentation}/${sample_name}.segments.table
     tumor_bam_file=${input_folder_path_bam}/${sample_name}.aligned.duplicates_marked.recalibrated.bam
@@ -71,7 +71,7 @@ while IFS=$'\t' read -r Tumor_sample_name Normal_sample_name; do
                 -R ${reference_path} \
                 -V ${vcf_file} \
                 -O ${output_folder_path_filtered_1}/${sample_name}.filtered_1.vcf \
-                --ob-priors ${f1r2_file} \
+                --ob-priors ${LROM_file} \
                 --contamination-table ${contamination_file} \
                 --tumor-segmentation ${tumor_segmentation_file}
 
