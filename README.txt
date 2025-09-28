@@ -35,7 +35,7 @@
 
 10_LearnReadOrientationModel.sh: 使用9输出的vcf学习并建立一个模型来识别由于DNA在样本处理（如福尔马林固定）过程中发生氧化损伤而导致的特定错误模式（方向性偏误），这是一种常见的假阳性来源。
 
-11_FilterMutectCalls.sh: 使用前面8、9、10步骤生成的交叉污染率、方向性偏误模型等信息，对Mutect2找出的原始突变结果进行过滤，去除可能的假阳性位点。
+11_FilterMutectCalls.sh: 使用前面8、9、10步骤生成的交叉污染率、方向性偏误模型等信息，对Mutect2找出的原始突变结果进行过滤，给 VCF 打 FILTER 标记，通过的突变 → FILTER=PASS，以及被怀疑是假阳性的突变
 
 12_FilterAlignmentArtifacts.sh: 进一步过滤由于序列比对错误而产生的假阳性突变。
 
