@@ -1,3 +1,23 @@
+"""
+FilterMutectCalls 是 Mutect2 的配套过滤工具，它根据一系列统计和模型，给候选变异打上标记（FILTER 字段），筛掉不太可信的假阳性。
+它的主要功能包括：
+         1、整合多个噪声来源
+                  测序错误（base error、mapping bias）
+                  链偏倚（strand bias）
+                  片段偏倚（read orientation bias，结合 LearnReadOrientationModel 的结果）
+                  污染（contamination table 提供的污染估计）
+                  肿瘤拷贝数信息（tumor segmentation）
+         2、计算突变的总体可信度
+                  使用贝叶斯模型整合以上信息，得到每个突变是否可能为真。
+         3、给 VCF 打 FILTER 标记（并没有删除信息）
+                  通过的突变 → FILTER=PASS
+                  被怀疑是假阳性的突变 → FILTER=<原因>，例如：
+                                                     germline_risk → 可能是种系突变
+                                                     contamination → 受污染影响
+                                                     orientation_bias → 链偏倚假阳性
+                                                     weak_evidence → 支持证据不足
+"""
+
 #!/bin/bash
 #SBATCH -J 11_FilterMutectCalls
 #SBATCH -N 1
