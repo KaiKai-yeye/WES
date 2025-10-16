@@ -15,7 +15,7 @@
             比较新的比对和原始比对 → 如果发现变异支持信号消失/减弱 → 判定该突变可能是假阳性。
 
 3. 输出结果
-  输出：一个 VCF，区别是：在 FILTER 字段里追加标记，比如：artifact_in_normal，artifact_in_tumor，orientation_bias（某些场景下也可能在这里标记）
+  输出：一个 VCF，区别是：有些版本会先挑选出上一步为PASS的，再进行筛选，减少计算量，在 FILTER 字段里追加标记，比如：artifact_in_normal，artifact_in_tumor，orientation_bias（某些场景下也可能在这里标记）
        如果突变被怀疑是假阳性，就会被标记。通过检查的突变仍然是 PASS。最后输出过滤后的VCF
 """
 #!/bin/bash
