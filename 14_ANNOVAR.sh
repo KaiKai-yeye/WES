@@ -1,3 +1,12 @@
+"""
+通过Mutect2（一款体细胞突变检测工具）对体细胞突变VCF文件进行批量注释。
+
+脚本的核心功能分为三个步骤：
+    格式转换：将 .vcf 文件转换为 ANNOVAR 特定的 .avinput 格式。
+    执行注释：使用 refGene 数据库对 .avinput 文件进行基因功能注释。
+    结果合并：从每个样本的注释结果中提取前10列关键信息，并添加样本名，最后合并成一个总的 all_sample.csv 文件。
+"""
+
 #!/bin/bash
 #SBATCH -J 14_ANNOVAR
 #SBATCH -N 1
