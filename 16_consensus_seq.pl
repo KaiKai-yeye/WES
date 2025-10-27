@@ -21,7 +21,7 @@ while (<REF>) {
 }
 close REF;
 
-foreach my $file (@file) {<8c>)<93>)<99>(<9f>'Y_W_T`Q`La\[
+foreach my $file (@file) {
         next if($file!~/$key/ || $file=~/\-L/);
         my $name=$1 if($file=~/\w+\-(\S+)\.hg38_multianno/);
         open(FILE,$file)||die"can't open the $key $name file\n";
