@@ -127,7 +127,13 @@ foreach PEPTIDE_LEN ($PEPTIDE_LENGTHS)
                                  -s \
                                  -xls \
                                  -xlsfile "$output_file"
-        
+        # -f <fasta_file> 指定输入序列文件（FASTA 格式）。
+        # -a <alleles_list> 指定要预测的 HLA/MHC 等位基因列表。
+        # -l <PEPTIDE_LEN> 指定要预测的肽段长度，例如 8、9、10。
+        # -s 表示使用 shell-friendly output（简化输出）。
+        # -xls 将输出格式设置为 Excel（tab 分隔）风格。
+        # -xlsfile <output_file> 指定输出文件的路径和文件名（通常是 .xls 或 .txt）。
+  
         # 检查命令是否成功执行
         if ($status == 0) then
             @ success_count++
